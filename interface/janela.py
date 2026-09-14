@@ -17,12 +17,14 @@ from core.captura import listar_interfaces
 from database.banco import Banco
 from servicos.alertas import ServicoAlertas
 from servicos.relatorio import gerar_relatorio
+from PyQt6.QtGui import QIcon
 
 
 class JanelaPrincipal(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Network Guardian")
+        self.setWindowIcon(QIcon("imagens/icone identidade network guardian/network_guardian.ico"))
         self.resize(1200, 750)
 
         self.banco = Banco()
