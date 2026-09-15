@@ -1,6 +1,14 @@
 from PyQt6.QtCore import QByteArray, Qt
 from PyQt6.QtGui import QIcon, QPainter, QPixmap
 from PyQt6.QtSvg import QSvgRenderer
+import os
+
+
+try:
+    DIRETORIO_BASE = __compiled__.containing_dir
+except NameError:
+    DIRETORIO_BASE = os.path.dirname(os.path.abspath(__file__))
+
 
 def carregar_icone(nome:str, cor:str, tamanho:int=24)->QIcon:
     caminho=f"imagens/icones/{nome}.svg"
