@@ -1,6 +1,13 @@
 import sqlite3
+import os
+import sys
 from database.modelo import PacoteInfo
 
+
+try:
+    DIRETORIO_EXECUTAVEL = os.path.dirname(sys.argv[0])   # pasta onde o .exe realmente está
+except Exception:
+    DIRETORIO_EXECUTAVEL = os.path.dirname(os.path.abspath(__file__))
 
 class Banco:
     def __init__(self, caminho="./database/DB_Criado/network_guardian.db"):

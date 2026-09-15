@@ -16,7 +16,7 @@ def varrer_portas(ip: str, porta_inicio: int, porta_fim: int, timeout: float = 0
     portas = range(porta_inicio, porta_fim + 1)
     portas_abertas = []
 
-    with ThreadPoolExecutor(max_workers=1000) as executor:
+    with ThreadPoolExecutor(max_workers=200) as executor:
         resultados = executor.map(lambda porta: (porta, testar_porta(ip, porta, timeout)), portas)
 
         for porta, esta_aberta in resultados:

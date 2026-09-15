@@ -26,13 +26,10 @@ class ThreadCaptura(QThread):
         self.ultimo_envio_pacotes = time.time()
         self._deve_parar=False
 
-
     def run(self):
         self.banco = Banco()
-        sniff(prn=self._processar, stop_filter=self._checar_parada, iface=self.interface)  # <-- MUDOU
-
-    def _checar_parada(self, pacote_scapy):
-        return self._deve_parar
+        while not self._deve_parar:
+            sniff(prn=self._processar, timeout=1, iface=self.interface, store=False)
 
     def parar(self):
         self._deve_parar = True

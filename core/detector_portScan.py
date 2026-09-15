@@ -16,7 +16,6 @@ class DetectorPortScan:
             porta for _horario, porta in self.eventos_por_par[chave]
         }
         esta_escaneando = len(porta_janela) >= self.limite_porta
-        
         if esta_escaneando and chave not in self.pares_em_alerta:
             self.pares_em_alerta.add(chave)
             return True
