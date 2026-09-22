@@ -10,7 +10,7 @@ def main():
     app.setStyleSheet(montar_folha_de_estilo())
 
     janela = JanelaPrincipal()
-    janela.show()
+    janela.showMaximized()
 
     sys.exit(app.exec())
 

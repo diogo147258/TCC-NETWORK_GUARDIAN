@@ -11,13 +11,14 @@ from interface.componentes.painel_indicador import PainelIndicador
 from interface.componentes.grafico_linha import GraficoLinha
 from interface.componentes.grafico_pizza import GraficoPizza
 from interface.componentes.grafico_barra import GraficoBarras
-from core.thread_captura import ThreadCaptura
-from core.thread_scan import ThreadScanner
-from core.captura import listar_interfaces
 from database.banco import Banco
 from servicos.alertas import ServicoAlertas
 from servicos.relatorio import gerar_relatorio
 from PyQt6.QtGui import QIcon
+from core.thread_captura import ThreadCaptura
+from core.thread_scan import ThreadScanner
+from core.thread_host import ThreadHosts          # <- linha nova
+from core.captura import listar_interfaces
 
 
 class JanelaPrincipal(QMainWindow):
@@ -25,7 +26,7 @@ class JanelaPrincipal(QMainWindow):
         super().__init__()
         self.setWindowTitle("Network Guardian")
         self.setWindowIcon(QIcon("imagens/icone identidade network guardian/network_guardian.ico"))
-        self.resize(1200, 750)
+
 
         self.banco = Banco()
         self.servico_alertas = ServicoAlertas()
@@ -126,7 +127,7 @@ class JanelaPrincipal(QMainWindow):
 
         self.tabela_eventos = self._montar_tabela_eventos()
         layout.addWidget(self._envolver_com_titulo("Eventos de Ataque", self.tabela_eventos))
-
+        layout.addWidget(self._montar_ips_ativos())
         return pagina
 
     def _montar_tabela_eventos(self) -> QTableWidget:
@@ -141,7 +142,71 @@ class JanelaPrincipal(QMainWindow):
         cabecalho.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
         return tabela
+    def _montar_ips_ativos(self) -> QWidget:
+        conteudo = QWidget()
+        layout_interno = QVBoxLayout(conteudo)
+        layout_interno.setContentsMargins(0, 0, 0, 0)
 
+        linha_controles = QHBoxLayout()
+        self.campo_faixa_rede = QLineEdit()
+        self.campo_faixa_rede.setPlaceholderText("ex.: 192.168.1.0/24")
+        linha_controles.addWidget(self.campo_faixa_rede)
+
+        self.botao_escanear_rede = QPushButton("Escanear Rede")
+        self.botao_escanear_rede.clicked.connect(self._escanear_rede)
+        linha_controles.addWidget(self.botao_escanear_rede)
+
+        layout_interno.addLayout(linha_controles)
+
+        self.tabela_hosts_ativos = QTableWidget(0, 2)
+        self.tabela_hosts_ativos.setHorizontalHeaderLabels(["IP", "MAC"])
+        self.tabela_hosts_ativos.setAlternatingRowColors(True)
+        self.tabela_hosts_ativos.verticalHeader().setVisible(False)
+        self.tabela_hosts_ativos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        cabecalho = self.tabela_hosts_ativos.horizontalHeader()
+        cabecalho.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        cabecalho.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        layout_interno.addWidget(self.tabela_hosts_ativos)
+
+        return self._envolver_com_titulo("IPs Ativos na Rede", conteudo)
+
+    def _calcular_faixa_padrao(self) -> str:
+        texto_interface = self.combo_interface.currentText()
+        ip = texto_interface.split(" - ")[0].strip()
+        partes = ip.split(".")
+        if len(partes) == 4:
+            return f"{partes[0]}.{partes[1]}.{partes[2]}.0/24"
+        return "192.168.1.0/24"
+
+    def _escanear_rede(self):
+        faixa = self.campo_faixa_rede.text().strip()
+        if not faixa:
+            faixa = self._calcular_faixa_padrao()
+            self.campo_faixa_rede.setText(faixa)
+        interface_escolhida = self.combo_interface.currentData()
+        self.botao_escanear_rede.setEnabled(False)
+        self.tabela_hosts_ativos.setRowCount(0)
+
+        self.thread_hosts = ThreadHosts(faixa, interface = interface_escolhida)
+        self.thread_hosts.concluido.connect(self._ao_concluir_hosts)
+        self.thread_hosts.erro.connect(self._ao_errar_hosts)
+        self.thread_hosts.start()
+
+    def _ao_concluir_hosts(self, hosts):
+        self.botao_escanear_rede.setEnabled(True)
+        self.tabela_hosts_ativos.setRowCount(0)
+
+        for ip, mac in hosts:
+            linha = self.tabela_hosts_ativos.rowCount()
+            self.tabela_hosts_ativos.insertRow(linha)
+            self.tabela_hosts_ativos.setItem(linha, 0, QTableWidgetItem(ip))
+            self.tabela_hosts_ativos.setItem(linha, 1, QTableWidgetItem(mac))
+
+        self.painel_hosts.definir_valor(str(len(hosts)))
+
+    def _ao_errar_hosts(self, mensagem):
+        self.botao_escanear_rede.setEnabled(True)
+        print(f"Erro ao escanear rede: {mensagem}")
     def _ao_detectar_ataque(self, ip_origem, ip_destino, quantidade):
         tabela = self.tabela_eventos
         tabela.insertRow(0)

@@ -59,7 +59,7 @@ class ThreadCaptura(QThread):
             eh_scan = self.detector_scan.processar_pacote(pacote)
             if eh_scan:
                 alerta = Alerta(
-                    tipo="port_scan",
+                    tipo="Port_Scan",
                     severidade=Severidade.MEDIA,
                     ip=pacote.ip_origem,
                     mensagem=f"Possível Port Scan — origem={pacote.ip_origem} destino={pacote.ip_destino}",
@@ -80,7 +80,7 @@ class ThreadCaptura(QThread):
                 )
 
                 alerta = Alerta(
-                    tipo="ddos",
+                    tipo="DDoS",
                     severidade=self._definir_severidade(motivo),
                     ip="rede",
                     mensagem=f"Possível DDoS — motivo: {motivo}",
