@@ -525,6 +525,8 @@ class JanelaPrincipal(QMainWindow):
         self.grafico_protocolos.definir_dados(dados)
 
     def _ao_gerar_alerta(self, alerta):
+        if not self.servico_alertas.notificar(alerta):
+            return
         self.lista_de_alertas.append(alerta)
 
         self.total_alertas += 1

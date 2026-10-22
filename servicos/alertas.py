@@ -8,13 +8,15 @@ class ServicoAlertas:
         self.tempo_espera = tempo_espera
         self.ultima_vez = {}
 
-    def notificar(self, alerta: Alerta):
+
+    def notificar(self, alerta: Alerta) -> bool:
         chave = (alerta.tipo, alerta.ip)
         agora = time.time()
         ultima = self.ultima_vez.get(chave, 0)
 
         if agora - ultima < self.tempo_espera:
-            return
+            return False
 
         print(f"[{alerta.severidade.value}] {alerta.mensagem}")
         self.ultima_vez[chave] = agora
+        return True
