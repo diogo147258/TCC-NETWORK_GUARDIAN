@@ -1,6 +1,7 @@
+import threading
 import time
 from PyQt6.QtCore import QThread, pyqtSignal
-from scapy.all import sniff
+from scapy.all import AsyncSniffer
 from core.captura import converter_pacote
 from core.analisador import AnalisadorDeTrafego
 from core.detector_ddos import DetectorDdos
@@ -21,36 +22,45 @@ class ThreadCaptura(QThread):
         self.analisador = AnalisadorDeTrafego()
         self.detector_ddos = DetectorDdos(limite=limite_pps, tamanho_historico=60, limite_zscore=limite_zscore)
         self.detector_scan = DetectorPortScan(limite_porta=15, janela_segundos=janela_segundos)
-        self.inicio_janela = time.time()
         self.buffer_pacotes = []
-        self.ultimo_envio_pacotes = time.time()
-        self._deve_parar=False
-
+        self.trava = threading.Lock()
+        self._deve_parar = False
 
     def run(self):
         self.banco = Banco()
-        sniff(prn=self._processar, stop_filter=self._checar_parada, iface=self.interface)  # <-- MUDOU
 
-    def _checar_parada(self, pacote_scapy):
-        return self._deve_parar
+        # o sniffer roda em segundo plano, numa thread propria do Scapy
+        self.sniffer = AsyncSniffer(prn=self._processar, iface=self.interface, store=False)
+        self.sniffer.start()
+
+        # o relogio: fecha um segundo de cada vez, chegando pacote ou nao
+        proximo = time.time() + 1.0
+        while not self._deve_parar:
+            espera = proximo - time.time()
+            if espera > 0:
+                time.sleep(espera)
+            else:
+                proximo = time.time()  # atrasou: recomeça o relógio
+            proximo += 1.0
+            self._fechar_segundo()
+
+        try:
+            self.sniffer.stop()
+        except Exception:
+            pass
 
     def parar(self):
         self._deve_parar = True
 
+    # roda na thread do Scapy, uma vez para cada pacote
     def _processar(self, pacote_scapy):
         pacote = converter_pacote(pacote_scapy)
         if pacote is None:
             return
 
-        self.analisador.somar_pacotes(pacote)
-        self.buffer_pacotes.append(pacote)
-
-        agora = time.time()
-        if agora - self.ultimo_envio_pacotes >= 0.5:
-            self.banco.salvar_pacotes(self.buffer_pacotes)
-            self.pacotes_capturados.emit(self.buffer_pacotes)
-            self.buffer_pacotes = []
-            self.ultimo_envio_pacotes = agora
+        with self.trava:
+            self.analisador.somar_pacotes(pacote)
+            self.buffer_pacotes.append(pacote)
 
         deve_analisar_scan = pacote.porta_destino is not None and (
                 pacote.protocolo != "TCP" or pacote.eh_syn
@@ -67,26 +77,34 @@ class ThreadCaptura(QThread):
                 )
                 self.alerta_gerado.emit(alerta)
 
-        if time.time() - self.inicio_janela >= 1.0:
+    # roda na QThread, exatamente uma vez por segundo
+    def _fechar_segundo(self):
+        with self.trava:
             ip_origem_top, ip_destino_top, _qtd_top = self.analisador.par_mais_ativo()
             pacotes_no_segundo = self.analisador.tempo_limite()
-            self.inicio_janela = time.time()
-            self.estatisticas_prontas.emit(pacotes_no_segundo)
+            pacotes_para_salvar = self.buffer_pacotes
+            self.buffer_pacotes = []
 
-            eh_ataque, motivo = self.detector_ddos.analisar(pacotes_no_segundo)
-            if eh_ataque:
-                self.evento_ataque.emit(
-                    ip_origem_top or "-", ip_destino_top or "-", pacotes_no_segundo
-                )
+        if pacotes_para_salvar:
+            self.banco.salvar_pacotes(pacotes_para_salvar)
+            self.pacotes_capturados.emit(pacotes_para_salvar)
 
-                alerta = Alerta(
-                    tipo="DDoS",
-                    severidade=self._definir_severidade(motivo),
-                    ip="rede",
-                    mensagem=f"Possível DDoS — motivo: {motivo}",
-                    horario=time.time(),
-                )
-                self.alerta_gerado.emit(alerta)
+        self.estatisticas_prontas.emit(pacotes_no_segundo)
+
+        eh_ataque, motivo = self.detector_ddos.analisar(pacotes_no_segundo)
+        if eh_ataque:
+            self.evento_ataque.emit(
+                ip_origem_top or "-", ip_destino_top or "-", pacotes_no_segundo
+            )
+
+            alerta = Alerta(
+                tipo="DDoS",
+                severidade=self._definir_severidade(motivo),
+                ip="rede",
+                mensagem=f"Possível DDoS — motivo: {motivo}",
+                horario=time.time(),
+            )
+            self.alerta_gerado.emit(alerta)
 
     def _definir_severidade(self, motivo: str) -> Severidade:
         if "limite fixo e desvio" in motivo:
