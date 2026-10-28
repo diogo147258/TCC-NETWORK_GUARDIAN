@@ -5,13 +5,14 @@ from collections import deque
 class DetectorDdos:
 
     def __init__(
-        self,
-        limite=1000,
-        tamanho_historico=60,
-        limite_zscore=3.0,
-        amostras_minimas=30,
-        piso_desvio=1.0,
-        maximo_congelado=300,
+            self,
+            limite=1000,
+            tamanho_historico=60,
+            limite_zscore=3.0,
+            amostras_minimas=30,
+            piso_desvio=1.0,
+            maximo_congelado=300,
+            segundos_confirmar=3,
     ):
         self.limite = limite
         self.limite_zscore = limite_zscore
@@ -21,6 +22,8 @@ class DetectorDdos:
         self.maximo_congelado = maximo_congelado
         self.segundos_congelados = 0
         self.ultimo_zscore = 0.0
+        self.segundos_confirmar = segundos_confirmar
+        self.segundos_seguidos_z = 0
 
     # ------------------------------------------------------------------
     def analisar(self, pacotes_no_segundo):
@@ -30,14 +33,21 @@ class DetectorDdos:
         self.ultimo_zscore = z
         fugiu_media = z >= self.limite_zscore
 
-        eh_ataque = passou or fugiu_media
+        # conta quantos segundos seguidos o z-score ficou alto
+        if fugiu_media:
+            self.segundos_seguidos_z += 1
+        else:
+            self.segundos_seguidos_z = 0
+        confirmou_z = self.segundos_seguidos_z >= self.segundos_confirmar
+
+        eh_ataque = passou or confirmou_z
         self._aprender(pacotes_no_segundo, eh_ataque)
 
         if passou and fugiu_media:
             return True, "limite fixo e desvio da media"
         elif passou:
             return True, "limite fixo"
-        elif fugiu_media:
+        elif confirmou_z:
             return True, "desvio da media (z-score)"
         else:
             return False, ""

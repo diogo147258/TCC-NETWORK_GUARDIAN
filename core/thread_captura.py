@@ -16,7 +16,7 @@ class ThreadCaptura(QThread):
     alerta_gerado = pyqtSignal(object)
     evento_ataque = pyqtSignal(str, str, int)
 
-    def __init__(self, interface=None, limite_pps=50, limite_zscore=3.0, janela_segundos=10):
+    def __init__(self, interface=None, limite_pps=200, limite_zscore=3.0, janela_segundos=10):
         super().__init__()
         self.interface = interface
         self.analisador = AnalisadorDeTrafego()

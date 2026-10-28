@@ -434,7 +434,7 @@ class JanelaPrincipal(QMainWindow):
 
         self.campo_limite_pps = QSpinBox()
         self.campo_limite_pps.setRange(1, 100000)
-        self.campo_limite_pps.setValue(50)
+        self.campo_limite_pps.setValue(200)
         formulario.addRow("Limite de pacotes/s:", self.campo_limite_pps)
 
         self.campo_limite_zscore = QDoubleSpinBox()
@@ -533,8 +533,6 @@ class JanelaPrincipal(QMainWindow):
         self.alertas_ativos += 1
         self.painel_alertas_totais.definir_valor(str(self.total_alertas))
         self.painel_alertas_ativos.definir_valor(str(self.alertas_ativos))
-
-        self.servico_alertas.notificar(alerta)
 
         if hasattr(self, "tabela_alertas"):
             self._adicionar_linha_alerta(alerta)

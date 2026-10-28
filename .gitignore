@@ -9,3 +9,7 @@ __pycache__/
 .env
 
 .venv/
+
+database/DB_Criado/*.db
+database/DB_Criado/*.db-shm
+database/DB_Criado/*.db-wal
