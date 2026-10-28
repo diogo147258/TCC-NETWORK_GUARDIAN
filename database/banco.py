@@ -1,9 +1,11 @@
+import os
 import sqlite3
 from database.modelo import PacoteInfo
 
 
 class Banco:
     def __init__(self, caminho="./database/DB_Criado/network_guardian.db"):
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
         self.conexao = sqlite3.connect(caminho, timeout=10)
         self.conexao.execute("PRAGMA journal_mode=WAL;")
         self._criar_tabelas()
