@@ -4,6 +4,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 
 def gerar_relatorio(caminho_arquivo, total_pacotes, total_alertas, lista_de_alertas):
@@ -21,9 +22,10 @@ def gerar_relatorio(caminho_arquivo, total_pacotes, total_alertas, lista_de_aler
     ]
 
     dados_tabela = [["Horário", "Tipo", "IP", "Severidade", "Mensagem"]]
+    estilo_celula = ParagraphStyle("celula", parent=estilos["Normal"], fontSize=8, leading=10)
     for alerta in lista_de_alertas:
         horario = datetime.fromtimestamp(alerta.horario).strftime("%H:%M:%S")
-        dados_tabela.append([horario, alerta.tipo, alerta.ip, alerta.severidade.value, alerta.mensagem])
+        dados_tabela.append([horario, alerta.tipo, alerta.ip, alerta.severidade.value, Paragraph(alerta.mensagem, estilo_celula),])
 
     tabela = Table(dados_tabela, colWidths=[2 * cm, 2.5 * cm, 3 * cm, 2.5 * cm, 6 * cm])
     tabela.setStyle(TableStyle([

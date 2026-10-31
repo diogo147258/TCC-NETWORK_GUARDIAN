@@ -28,7 +28,6 @@ class ThreadCaptura(QThread):
 
     def run(self):
         self.banco = Banco()
-
         # o sniffer roda em segundo plano, numa thread propria do Scapy
         self.sniffer = AsyncSniffer(prn=self._processar, iface=self.interface, store=False)
         self.sniffer.start()
