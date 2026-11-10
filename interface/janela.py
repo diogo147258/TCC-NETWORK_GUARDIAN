@@ -445,6 +445,10 @@ class JanelaPrincipal(QMainWindow):
         self.campo_janela_segundos = QSpinBox()
         self.campo_janela_segundos.setRange(1, 300)
         self.campo_janela_segundos.setValue(10)
+        self.campo_ips_excecao = QLineEdit()
+        self.campo_ips_excecao.setPlaceholderText("ex.: 192.168.137.131, 192.168.137.50")
+        formulario.addRow("IPs confiáveis:", self.campo_ips_excecao)
+
         formulario.addRow("Janela de tempo do scan (s):", self.campo_janela_segundos)
 
         layout.addWidget(painel_formulario)
@@ -536,3 +540,7 @@ class JanelaPrincipal(QMainWindow):
 
         if hasattr(self, "tabela_alertas"):
             self._adicionar_linha_alerta(alerta)
+
+    def _ler_ips_excecao(self):
+        texto = self.campo_ips_excecao.text()
+        return [ip.strip() for ip in texto.split(",") if ip.strip()]

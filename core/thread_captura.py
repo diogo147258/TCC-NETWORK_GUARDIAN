@@ -18,6 +18,7 @@ class ThreadCaptura(QThread):
 
     def __init__(self, interface=None, limite_pps=200, limite_zscore=3.0, janela_segundos=10):
         super().__init__()
+        self.ips_excecao = set()
         self.interface = interface
         self.analisador = AnalisadorDeTrafego()
         self.detector_ddos = DetectorDdos(limite=limite_pps, tamanho_historico=60, limite_zscore=limite_zscore)
@@ -56,7 +57,15 @@ class ThreadCaptura(QThread):
         pacote = converter_pacote(pacote_scapy)
         if pacote is None:
             return
+        eh_excecao = pacote.ip_origem in self.ips_excecao or pacote.ip_destino in self.ips_excecao
 
+        with self.trava:
+            if not eh_excecao:
+                self.analisador.somar_pacotes(pacote)  # só conta se não for exceção
+            self.buffer_pacotes.append(pacote)  # mas salva no banco sempre
+
+        if eh_excecao:
+            return
         with self.trava:
             self.analisador.somar_pacotes(pacote)
             self.buffer_pacotes.append(pacote)
@@ -76,7 +85,11 @@ class ThreadCaptura(QThread):
                 )
                 self.alerta_gerado.emit(alerta)
 
-    # roda na QThread, exatamente uma vez por segundo
+    def atualizar_configuracoes(self, limite_pps, limite_zscore, janela_segundos, ips_excecao=None):
+        ...
+        if ips_excecao is not None:
+            self.ips_excecao = set(ips_excecao)
+            
     def _fechar_segundo(self):
         with self.trava:
             ip_origem_top, ip_destino_top, _qtd_top = self.analisador.par_mais_ativo()
