@@ -13,3 +13,5 @@ __pycache__/
 database/DB_Criado/*.db
 database/DB_Criado/*.db-shm
 database/DB_Criado/*.db-wal
+
+registros/

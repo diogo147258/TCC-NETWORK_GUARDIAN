@@ -434,7 +434,7 @@ class JanelaPrincipal(QMainWindow):
 
         self.campo_limite_pps = QSpinBox()
         self.campo_limite_pps.setRange(1, 100000)
-        self.campo_limite_pps.setValue(200)
+        self.campo_limite_pps.setValue(400)
         formulario.addRow("Limite de pacotes/s:", self.campo_limite_pps)
 
         self.campo_limite_zscore = QDoubleSpinBox()

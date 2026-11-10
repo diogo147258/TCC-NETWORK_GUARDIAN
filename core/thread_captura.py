@@ -1,3 +1,7 @@
+import csv
+import os
+from datetime import datetime
+
 import threading
 import time
 from PyQt6.QtCore import QThread, pyqtSignal
@@ -16,7 +20,7 @@ class ThreadCaptura(QThread):
     alerta_gerado = pyqtSignal(object)
     evento_ataque = pyqtSignal(str, str, int)
 
-    def __init__(self, interface=None, limite_pps=200, limite_zscore=3.0, janela_segundos=10):
+    def __init__(self, interface=None, limite_pps=400, limite_zscore=3.0, janela_segundos=10):
         super().__init__()
         self.ips_excecao = set()
         self.interface = interface
@@ -33,7 +37,14 @@ class ThreadCaptura(QThread):
         self.sniffer = AsyncSniffer(prn=self._processar, iface=self.interface, store=False)
         self.sniffer.start()
 
-        # o relogio: fecha um segundo de cada vez, chegando pacote ou nao
+        os.makedirs("registros", exist_ok=True)
+        nome_arquivo = datetime.now().strftime("registros/captura_%Y%m%d_%H%M%S.csv")
+        self.arquivo_csv = open(nome_arquivo, "w", newline="", encoding="utf-8")
+        self.escritor_csv = csv.writer(self.arquivo_csv, delimiter=";")
+        self.escritor_csv.writerow([
+            "horario", "pacotes_total", "ip_destino_top", "pacotes_destino_top",
+            "zscore", "tamanho_historico", "alerta", "motivo",
+        ])
         proximo = time.time() + 1.0
         while not self._deve_parar:
             espera = proximo - time.time()
@@ -46,6 +57,7 @@ class ThreadCaptura(QThread):
 
         try:
             self.sniffer.stop()
+            self.arquivo_csv.close()
         except Exception:
             pass
 
@@ -83,28 +95,43 @@ class ThreadCaptura(QThread):
 
     def _fechar_segundo(self):
         with self.trava:
-            ip_origem_top, ip_destino_top, _qtd_top = self.analisador.par_mais_ativo()
+
+            ip_destino_top, pacotes_destino_top = self.analisador.destino_mais_atingido()
+            ip_origem_top = self.analisador.origem_principal(ip_destino_top)
             pacotes_no_segundo = self.analisador.tempo_limite()
             pacotes_para_salvar = self.buffer_pacotes
             self.buffer_pacotes = []
-
+        print(f"total={pacotes_no_segundo}  destino={ip_destino_top}  pacotes_destino={pacotes_destino_top}")
         if pacotes_para_salvar:
             self.banco.salvar_pacotes(pacotes_para_salvar)
             self.pacotes_capturados.emit(pacotes_para_salvar)
 
+        # o gráfico e o indicador continuam mostrando o total da interface
         self.estatisticas_prontas.emit(pacotes_no_segundo)
 
-        eh_ataque, motivo = self.detector_ddos.analisar(pacotes_no_segundo)
+        # a detecção agora usa só o destino que mais recebeu pacotes
+        eh_ataque, motivo = self.detector_ddos.analisar(pacotes_destino_top)
+        self.escritor_csv.writerow([
+            datetime.now().strftime("%H:%M:%S"),
+            pacotes_no_segundo,
+            ip_destino_top or "-",
+            pacotes_destino_top,
+            f"{self.detector_ddos.ultimo_zscore:.2f}",
+            len(self.detector_ddos.historico),
+            int(eh_ataque),
+            motivo,
+        ])
+        self.arquivo_csv.flush()
         if eh_ataque:
             self.evento_ataque.emit(
-                ip_origem_top or "-", ip_destino_top or "-", pacotes_no_segundo
+                ip_origem_top or "-", ip_destino_top or "-", pacotes_destino_top
             )
 
             alerta = Alerta(
                 tipo="DDoS",
                 severidade=self._definir_severidade(motivo),
-                ip="rede",
-                mensagem=f"Possível DDoS — motivo: {motivo}",
+                ip=ip_destino_top or "rede",
+                mensagem=f"Possível DDoS contra {ip_destino_top} — motivo: {motivo}",
                 horario=time.time(),
             )
             self.alerta_gerado.emit(alerta)
