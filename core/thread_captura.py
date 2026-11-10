@@ -117,7 +117,9 @@ class ThreadCaptura(QThread):
         else:
             return Severidade.MEDIA
 
-    def atualizar_configuracoes(self, limite_pps, limite_zscore, janela_segundos):
+    def atualizar_configuracoes(self, limite_pps, limite_zscore, janela_segundos, ips_excecao=None):
         self.detector_ddos.limite = limite_pps
         self.detector_ddos.limite_zscore = limite_zscore
         self.detector_scan.janela_segundos = janela_segundos
+        if ips_excecao is not None:
+            self.ips_excecao = set(ips_excecao)

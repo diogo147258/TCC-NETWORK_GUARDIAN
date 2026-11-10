@@ -446,7 +446,7 @@ class JanelaPrincipal(QMainWindow):
         self.campo_janela_segundos.setRange(1, 300)
         self.campo_janela_segundos.setValue(10)
         self.campo_ips_excecao = QLineEdit()
-        self.campo_ips_excecao.setPlaceholderText("ex.: 192.168.137.131, 192.168.137.50")
+        self.campo_ips_excecao.setPlaceholderText("ex.: 192.168.137.x, 192.168.1.x")
         formulario.addRow("IPs confiáveis:", self.campo_ips_excecao)
 
         formulario.addRow("Janela de tempo do scan (s):", self.campo_janela_segundos)
@@ -505,9 +505,9 @@ class JanelaPrincipal(QMainWindow):
         self.thread_captura.alerta_gerado.connect(self._ao_gerar_alerta)
         self.thread_captura.evento_ataque.connect(self._ao_detectar_ataque)
         self.thread_captura.finished.connect(self._ao_parar_captura)
-        self.thread_captura.start()
         self.thread_captura.ips_excecao = set(self._ler_ips_excecao())
         print("IPs confiáveis na captura:", self.thread_captura.ips_excecao)
+        self.thread_captura.start()
         self.botao_iniciar_captura.setText("Parar Captura")
         self.botao_iniciar_captura.setEnabled(True)
 
