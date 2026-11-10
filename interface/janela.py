@@ -469,6 +469,7 @@ class JanelaPrincipal(QMainWindow):
             limite_pps=self.campo_limite_pps.value(),
             limite_zscore=self.campo_limite_zscore.value(),
             janela_segundos=self.campo_janela_segundos.value(),
+            ips_excecao=self._ler_ips_excecao(),
         )
 
     # ------------------------------------------------------------------
@@ -505,6 +506,8 @@ class JanelaPrincipal(QMainWindow):
         self.thread_captura.evento_ataque.connect(self._ao_detectar_ataque)
         self.thread_captura.finished.connect(self._ao_parar_captura)
         self.thread_captura.start()
+        self.thread_captura.ips_excecao = set(self._ler_ips_excecao())
+        print("IPs confiáveis na captura:", self.thread_captura.ips_excecao)
         self.botao_iniciar_captura.setText("Parar Captura")
         self.botao_iniciar_captura.setEnabled(True)
 

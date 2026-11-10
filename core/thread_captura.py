@@ -61,14 +61,10 @@ class ThreadCaptura(QThread):
 
         with self.trava:
             if not eh_excecao:
-                self.analisador.somar_pacotes(pacote)  # só conta se não for exceção
-            self.buffer_pacotes.append(pacote)  # mas salva no banco sempre
-
+                self.analisador.somar_pacotes(pacote)
+            self.buffer_pacotes.append(pacote)
         if eh_excecao:
             return
-        with self.trava:
-            self.analisador.somar_pacotes(pacote)
-            self.buffer_pacotes.append(pacote)
 
         deve_analisar_scan = pacote.porta_destino is not None and (
                 pacote.protocolo != "TCP" or pacote.eh_syn
@@ -85,11 +81,6 @@ class ThreadCaptura(QThread):
                 )
                 self.alerta_gerado.emit(alerta)
 
-    def atualizar_configuracoes(self, limite_pps, limite_zscore, janela_segundos, ips_excecao=None):
-        ...
-        if ips_excecao is not None:
-            self.ips_excecao = set(ips_excecao)
-            
     def _fechar_segundo(self):
         with self.trava:
             ip_origem_top, ip_destino_top, _qtd_top = self.analisador.par_mais_ativo()
