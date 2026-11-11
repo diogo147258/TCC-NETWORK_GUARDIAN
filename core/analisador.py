@@ -27,11 +27,6 @@ class AnalisadorDeTrafego:
         ip_origem, ip_destino = par
         return ip_origem, ip_destino, quantidade
 
-    def destino_mais_atingido(self):
-        if not self.contagem_por_destino:
-            return None, 0
-        return max(self.contagem_por_destino.items(), key=lambda item: item[1])
-
     def origem_principal(self, ip_destino):
         # de todos que mandaram pacote pro ip_destino, quem mandou mais
         candidatos = {

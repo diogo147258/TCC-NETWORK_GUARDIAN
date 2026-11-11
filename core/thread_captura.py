@@ -57,9 +57,9 @@ class ThreadCaptura(QThread):
 
         try:
             self.sniffer.stop()
-            self.arquivo_csv.close()
         except Exception:
             pass
+        self.arquivo_csv.close()
 
     def parar(self):
         self._deve_parar = True
@@ -95,13 +95,11 @@ class ThreadCaptura(QThread):
 
     def _fechar_segundo(self):
         with self.trava:
-
             ip_destino_top, pacotes_destino_top = self.analisador.destino_mais_atingido()
             ip_origem_top = self.analisador.origem_principal(ip_destino_top)
             pacotes_no_segundo = self.analisador.tempo_limite()
             pacotes_para_salvar = self.buffer_pacotes
             self.buffer_pacotes = []
-        print(f"total={pacotes_no_segundo}  destino={ip_destino_top}  pacotes_destino={pacotes_destino_top}")
         if pacotes_para_salvar:
             self.banco.salvar_pacotes(pacotes_para_salvar)
             self.pacotes_capturados.emit(pacotes_para_salvar)
