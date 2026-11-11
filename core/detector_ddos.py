@@ -64,7 +64,13 @@ class DetectorDdos:
     # ------------------------------------------------------------------
     def _aprender(self, pacotes_no_segundo, eh_ataque):
         if not eh_ataque:
-            self.historico.append(pacotes_no_segundo)
+            valor = pacotes_no_segundo
+            if self.esta_aquecido():
+                media = statistics.mean(self.historico)
+                desvio = max(statistics.stdev(self.historico), self.piso_desvio)
+                teto = media + self.limite_zscore * desvio
+                valor = min(valor, teto)  # a rajada entra no histórico, mas aparada
+            self.historico.append(valor)
             self.segundos_congelados = 0
             return
         self.segundos_congelados += 1

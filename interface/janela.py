@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QLabel, QLineEdit, QMainWindow, QProgressBar, QPushButton, QSpinBox,
     QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
+from collections import Counter
 from interface.tema import Cores
 from interface.componentes.barra_lateral import BarraLateral
 from interface.componentes.painel_indicador import PainelIndicador
@@ -32,6 +33,7 @@ class JanelaPrincipal(QMainWindow):
         self.servico_alertas = ServicoAlertas()
         self.lista_de_alertas = []
         self.total_pacotes = 0
+        self.contagem_protocolos = Counter()
         self.total_alertas = 0
         self.alertas_ativos = 0
 
@@ -507,6 +509,7 @@ class JanelaPrincipal(QMainWindow):
         self.thread_captura.finished.connect(self._ao_parar_captura)
         self.thread_captura.ips_excecao = set(self._ler_ips_excecao())
         print("IPs confiáveis na captura:", self.thread_captura.ips_excecao)
+        self.contagem_protocolos.clear()
         self.thread_captura.start()
         self.botao_iniciar_captura.setText("Parar Captura")
         self.botao_iniciar_captura.setEnabled(True)
@@ -517,6 +520,7 @@ class JanelaPrincipal(QMainWindow):
 
     def _ao_receber_pacotes(self, pacotes):
         self.total_pacotes += len(pacotes)
+        self.contagem_protocolos.update(p.protocolo for p in pacotes)
 
     def _ao_fechar_janela(self, pacotes_no_segundo):
         self.painel_pacotes.definir_valor(str(pacotes_no_segundo))
@@ -524,7 +528,7 @@ class JanelaPrincipal(QMainWindow):
         self._atualizar_protocolos()
 
     def _atualizar_protocolos(self):
-        distribuicao = self.banco.distribuicao_protocolos()
+        distribuicao = self.contagem_protocolos.most_common()
         dados = [
             (protocolo, total, Cores.protocolo(protocolo))
             for protocolo, total in distribuicao
