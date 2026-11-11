@@ -13,6 +13,8 @@ class DetectorDdos:
             piso_desvio=1.0,
             maximo_congelado=300,
             segundos_confirmar=3,
+            segundos_seguidos_fixo=0,
+
     ):
         self.limite = limite
         self.limite_zscore = limite_zscore
@@ -27,11 +29,17 @@ class DetectorDdos:
 
     # ------------------------------------------------------------------
     def analisar(self, pacotes_no_segundo):
-        """Devolve (eh_ataque, motivo) — mesma assinatura da versão anterior."""
         passou = pacotes_no_segundo >= self.limite
         z = self._calcular_zscore(pacotes_no_segundo)
         self.ultimo_zscore = z
         fugiu_media = z >= self.limite_zscore
+
+        # conta quantos segundos seguidos o limite fixo ficou estourado
+        if passou:
+            self.segundos_seguidos_fixo += 1
+        else:
+            self.segundos_seguidos_fixo = 0
+        confirmou_fixo = self.segundos_seguidos_fixo >= self.segundos_confirmar
 
         # conta quantos segundos seguidos o z-score ficou alto
         if fugiu_media:
@@ -40,12 +48,14 @@ class DetectorDdos:
             self.segundos_seguidos_z = 0
         confirmou_z = self.segundos_seguidos_z >= self.segundos_confirmar
 
-        eh_ataque = passou or confirmou_z
-        self._aprender(pacotes_no_segundo, eh_ataque)
+        eh_ataque = confirmou_fixo or confirmou_z
 
-        if passou and fugiu_media:
+        # segundo acima do limite fixo não entra no histórico, mesmo sem confirmar
+        self._aprender(pacotes_no_segundo, eh_ataque or passou)
+
+        if confirmou_fixo and fugiu_media:
             return True, "limite fixo e desvio da media"
-        elif passou:
+        elif confirmou_fixo:
             return True, "limite fixo"
         elif confirmou_z:
             return True, "desvio da media (z-score)"
