@@ -13,8 +13,6 @@ class DetectorDdos:
             piso_desvio=1.0,
             maximo_congelado=300,
             segundos_confirmar=3,
-            segundos_seguidos_fixo=0,
-
     ):
         self.limite = limite
         self.limite_zscore = limite_zscore
@@ -26,6 +24,7 @@ class DetectorDdos:
         self.ultimo_zscore = 0.0
         self.segundos_confirmar = segundos_confirmar
         self.segundos_seguidos_z = 0
+        self.segundos_seguidos_fixo = 0
 
     # ------------------------------------------------------------------
     def analisar(self, pacotes_no_segundo):
