@@ -20,7 +20,7 @@ class ThreadCaptura(QThread):
     alerta_gerado = pyqtSignal(object)
     evento_ataque = pyqtSignal(str, str, int)
 
-    def __init__(self, interface=None, limite_pps=400, limite_zscore=3.0, janela_segundos=10):
+    def __init__(self, interface=None, limite_pps=600, limite_zscore=3.0, janela_segundos=10):
         super().__init__()
         self.ips_excecao = set()
         self.interface = interface
